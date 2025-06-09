@@ -46,6 +46,11 @@ async function findThreadByIssueNumber(issueNumber) {
   return thread;
 }
 
+async function getStarterMessage(thread) {
+  const messages = await thread.messages.fetch({ limit: 1 });
+  return messages.first();
+}
+
 app.post("/webhook", async (req, res) => {
   try {
     // Verify webhook signature
@@ -120,6 +125,14 @@ app.post("/webhook", async (req, res) => {
         if (thread) {
           if (action === "closed" && pull_request.merged) {
             await thread.send(`**${sender.login} merged this PR**`);
+            const message = await getStarterMessage(thread);
+            if (message) {
+              await message.react(
+                message.guild.emojis.cache.find(
+                  (emoji) => emoji.name === "pr_merged",
+                ),
+              );
+            }
           } else {
             await thread.send(`**${sender.login} ${action} this PR**`);
           }
